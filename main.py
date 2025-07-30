@@ -2,7 +2,7 @@ import os
 import time
 from pyrogram import Client, filters
 
-# ✅ TIME PATCH for "msg_id is too low" bug
+# ⚠️ Patch: Fix Telegram msg_id timing errors
 original_time = time.time
 time.time = lambda: int(original_time())
 

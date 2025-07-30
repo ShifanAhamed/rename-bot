@@ -1,9 +1,10 @@
 import os
-import time  # ✅ Add this
+import time
 from pyrogram import Client, filters
 
-# 🕒 Add a small delay to let system time sync
-time.sleep(5)
+# ✅ Patch to avoid Telegram msg_id error due to time drift on some servers
+original_time = time.time
+time.time = lambda: int(original_time())
 
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")

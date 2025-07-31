@@ -6,7 +6,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 # ========== Environment Variables ==========
-API_ID = int(os.getenv((27944263))
+API_ID = int(os.getenv("27944263"))
 API_HASH = os.getenv("f494712f1d11956c1954e2cbbd984370")
 BOT_TOKEN = os.getenv("7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4")
 MONGO_URI = os.getenv("mongodb://shifanahamed007:shifan007@cluster0.mongodb.net:27017/?authSource=admin")  # e.g., "mongodb+srv://user:pass@cluster0.mongodb.net/dbname"

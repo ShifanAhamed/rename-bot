@@ -1,22 +1,31 @@
-import time
-from datetime import datetime, timezone
 import os
+import asyncio
+import datetime
+import ntplib
 from pyrogram import Client, filters
 from pymongo import MongoClient
-import asyncio
 
 # ========== CONFIG ========== #
 API_ID = 27944263
 API_HASH = "f494712f1d11956c1954e2cbbd984370"
-BOT_TOKEN = "7746953136:AAER6ehls2Sny4zO3wWcvBEcxg_YB_UD4"
-MONGO_URL = "mongodb+srv://shifanahamed007:shifan007@cluster0.xvznbpo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+BOT_TOKEN = "7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4"
+MONGO_URI = "mongodb+srv://shifanahamed007:shifan007@cluster0.mongodb.net/?retryWrites=true&w=majority"
 
-# ========== TIME DISPLAY ========== #
-print("⏱ Using system time:", datetime.now(timezone.utc).isoformat(), "UTC")
+# ========== TIME SYNC FIX FOR RENDER ========== #
+def sync_time_with_ntp():
+    try:
+        ntp = ntplib.NTPClient()
+        response = ntp.request("pool.ntp.org")
+        corrected_time = datetime.datetime.utcfromtimestamp(response.tx_time)
+        print("⏱ Synced time:", corrected_time.isoformat(), "UTC")
+    except Exception as e:
+        print("❌ NTP Sync Failed:", e)
+
+sync_time_with_ntp()
 
 # ========== MONGO SETUP ========== #
 try:
-    mongo_client = MongoClient(MONGO_URL)
+    mongo_client = MongoClient(MONGO_URI)
     db = mongo_client["telegram_bot"]
     users_collection = db["users"]
     print("✅ Connected to MongoDB Atlas")
@@ -25,15 +34,15 @@ except Exception as e:
 
 # ========== TELEGRAM BOT SETUP ========== #
 app = Client(
-    "bot_session",  # this is a unique name for session file storage
+    name="my_bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
-# ========== START COMMAND ========== #
+# ========== HANDLERS ========== #
 @app.on_message(filters.command("start"))
-async def start(client, message):
+async def start_handler(client, message):
     user_id = message.from_user.id
     name = message.from_user.first_name
     users_collection.update_one(
@@ -41,9 +50,14 @@ async def start(client, message):
         {"$set": {"name": name}},
         upsert=True
     )
-    await message.reply(f"👋 Hello {name}! You are now registered.")
+    await message.reply(f"👋 Hello {name}! You are now registered in MongoDB.")
 
-# ========== BOT RUNNER ========== #
+@app.on_message(filters.text & ~filters.command(["start"]))
+async def echo_handler(client, message):
+    await message.reply("✅ Message received!")
+
+# ========== RUN ========== #
 if __name__ == "__main__":
     print("🚀 Starting Telegram bot...")
     app.run()
+

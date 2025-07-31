@@ -9,7 +9,7 @@ from pymongo import MongoClient
 API_ID = 27944263
 API_HASH = "f494712f1d11956c1954e2cbbd984370"
 BOT_TOKEN = "7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4"
-MONGO_URI = "mongodb+srv://shifanahamed007:shifan007@cluster0.mongodb.net/?retryWrites=true&w=majority"
+MONGO_URI = "MONGO_URI = "mongodb://shifanahamed007:shifan007@ac-xxxx.mongodb.net:27017/?authSource=admin"
 
 # ========== TIME SYNC FIX FOR RENDER ========== #
 def sync_time_with_ntp():
@@ -34,7 +34,7 @@ except Exception as e:
 
 # ========== TELEGRAM BOT SETUP ========== #
 app = Client(
-    name="my_bot",
+    "my_bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN

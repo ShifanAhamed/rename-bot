@@ -1,49 +1,54 @@
 import os
 import time
 import ntplib
+from motor.motor_asyncio import AsyncIOMotorClient
 from pyrogram import Client, filters
 
+# ⏱ Time Sync Patch using NTP (Fixes Telegram msg_id errors)
+try:
+    client = ntplib.NTPClient()
+    response = client.request('pool.ntp.org')
+    synced_time = int(response.tx_time)
+    time.time = lambda: synced_time
+    print("✅ Time synchronized with NTP")
+except Exception as e:
+    print(f"[⚠️] Time sync failed: {e}")
+    time.time = lambda: int(time.time())  # fallback: use integer version
 
-# 🔧 Fix Telegram msg_id timing errors on Railway/Render
-def sync_time():
-    try:
-        ntp_client = ntplib.NTPClient()
-        response = ntp_client.request('pool.ntp.org')
-        offset = response.tx_time - time.time()
-        print(f"[🕒] Time sync offset: {offset:.2f} seconds")
-        time.time = lambda: int(response.tx_time)
-    except Exception as e:
-        print(f"[⚠️] Time sync failed: {e}")
-
-sync_time()
-
-# 🔐 Telegram API credentials
+# 🔐 Environment Variables (Railway/Render safe)
 API_ID = int(os.environ.get("API_ID", "28906453"))
 API_HASH = os.environ.get("API_HASH", "f494712f1d11956c1954e2cbbd984370")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://shifanahamed007:s\Shifan007@cluster0.xvznbpo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 
+# 🌐 MongoDB Client (Motor)
+mongo_client = AsyncIOMotorClient(MONGO_URI)
+db = mongo_client["Clustor0"]
+users_collection = db["shifanahamed007"]
 
-# 📦 Pyrogram Bot Client
+# 🤖 Initialize Pyrogram Client
 app = Client("rename_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# ✅ /start command — stores user in MongoDB
+# 🟢 /start command
 @app.on_message(filters.command("start"))
 async def start(client, message):
     user_id = message.from_user.id
-    user = users_collection.find_one({"_id": user_id})
-    if not user:
-        users_collection.insert_one({
-            "_id": user_id,
-            "first_name": message.from_user.first_name,
-            "username": message.from_user.username,
-            "joined_at": time.strftime("%Y-%m-%d %H:%M:%S")
-        })
-        await message.reply_text("👋 Hello! You've been added to the database.")
-    else:
-        await message.reply_text("✅ You're already in the database.")
+    username = message.from_user.username or "unknown"
 
-# 🚀 Start the bot
+    # Store user in MongoDB if not already present
+    if not await users_collection.find_one({"user_id": user_id}):
+        await users_collection.insert_one({
+            "user_id": user_id,
+            "username": username,
+            "joined_at": time.time()
+        })
+        print(f"👤 New user added: {username} ({user_id})")
+
+    await message.reply_text("✅ Bot is running and connected to MongoDB!")
+
+# 🚀 Run the bot
 if __name__ == "__main__":
     print("🚀 Starting Telegram bot...")
     app.run()
+
 

@@ -1,63 +1,84 @@
-import os
-import asyncio
 import datetime
 import ntplib
-from pyrogram import Client, filters
+import os
 from pymongo import MongoClient
+from pyrogram import Client, filters
+from pyrogram.types import Message
 
-# ========== CONFIG ========== #
-API_ID = 27944263
-API_HASH = "f494712f1d11956c1954e2cbbd984370"
-BOT_TOKEN = "7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4"
-MONGO_URI = "mongodb://shifanahamed007:shifan007@cluster0.mongodb.net:27017/?authSource=admin"
+# ========== Environment Variables ==========
+API_ID = int(os.getenv((27944263))
+API_HASH = os.getenv("f494712f1d11956c1954e2cbbd984370")
+BOT_TOKEN = os.getenv("7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4")
+MONGO_URI = os.getenv("mongodb://shifanahamed007:shifan007@cluster0.mongodb.net:27017/?authSource=admin")  # e.g., "mongodb+srv://user:pass@cluster0.mongodb.net/dbname"
 
-# ========== TIME SYNC FIX FOR RENDER ========== #
-def sync_time_with_ntp():
+# ========== Time Sync Function ==========
+def sync_time():
     try:
-        ntp = ntplib.NTPClient()
-        response = ntp.request("pool.ntp.org")
-        corrected_time = datetime.datetime.utcfromtimestamp(response.tx_time)
-        print("⏱ Synced time:", corrected_time.isoformat(), "UTC")
+        client = ntplib.NTPClient()
+        response = client.request("pool.ntp.org")
+        corrected_time = datetime.datetime.fromtimestamp(response.tx_time, datetime.UTC)
+        print(f"⏱ Synced time: {corrected_time.isoformat()}")
     except Exception as e:
-        print("❌ NTP Sync Failed:", e)
+        print(f"⚠️ Time sync failed: {e}")
 
-sync_time_with_ntp()
+sync_time()
 
-# ========== MONGO SETUP ========== #
+# ========== MongoDB Setup ==========
 try:
     mongo_client = MongoClient(MONGO_URI)
-    db = mongo_client["telegram_bot"]
-    users_collection = db["users"]
+    db = mongo_client.get_database()
+    collection = db["messages"]
     print("✅ Connected to MongoDB Atlas")
 except Exception as e:
-    print("❌ MongoDB Error:", e)
+    print(f"❌ MongoDB Error: {e}")
 
-# ========== TELEGRAM BOT SETUP ========== #
+# ========== Telegram Bot ==========
 app = Client(
-    "my_bot",
+    session_name="bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
-# ========== HANDLERS ========== #
+# ========== /start Command ==========
 @app.on_message(filters.command("start"))
-async def start_handler(client, message):
-    user_id = message.from_user.id
-    name = message.from_user.first_name
-    users_collection.update_one(
-        {"_id": user_id},
-        {"$set": {"name": name}},
-        upsert=True
+async def start_handler(client, message: Message):
+    await message.reply_text(
+        f"👋 Hello **{message.from_user.first_name}**!\n\n"
+        "Use `/save your_message` to save a message to MongoDB."
     )
-    await message.reply(f"👋 Hello {name}! You are now registered in MongoDB.")
 
-@app.on_message(filters.text & ~filters.command(["start"]))
-async def echo_handler(client, message):
-    await message.reply("✅ Message received!")
+# ========== /save Command ==========
+@app.on_message(filters.command("save") & filters.text)
+async def save_handler(client, message: Message):
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.username or "N/A"
+        first_name = message.from_user.first_name or "N/A"
+        full_text = message.text
 
-# ========== RUN ========== #
+        command, *content = full_text.split(maxsplit=1)
+        message_content = content[0] if content else ""
+
+        if not message_content:
+            await message.reply_text("⚠️ Please provide a message to save after `/save`.")
+            return
+
+        data = {
+            "_id": message.message_id,
+            "user_id": user_id,
+            "username": username,
+            "first_name": first_name,
+            "message": message_content,
+            "saved_at": datetime.datetime.utcnow()
+        }
+
+        collection.insert_one(data)
+        await message.reply_text(f"✅ Saved your message with ID: `{message.message_id}`")
+    except Exception as e:
+        await message.reply_text(f"❌ Error saving message: {e}")
+
+# ========== Run Bot ==========
 if __name__ == "__main__":
     print("🚀 Starting Telegram bot...")
     app.run()
-

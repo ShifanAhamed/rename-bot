@@ -9,7 +9,7 @@ from pymongo import MongoClient
 API_ID = 27944263
 API_HASH = "f494712f1d11956c1954e2cbbd984370"
 BOT_TOKEN = "7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4"
-MONGO_URI = "MONGO_URI = "mongodb://shifanahamed007:shifan007@Cluster0.mongodb.net:27017/?authSource=admin"
+MONGO_URI = "mongodb://shifanahamed007:shifan007@cluster0.mongodb.net:27017/?authSource=admin"
 
 # ========== TIME SYNC FIX FOR RENDER ========== #
 def sync_time_with_ntp():

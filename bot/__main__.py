@@ -9,22 +9,27 @@ try:
     client = ntplib.NTPClient()
     response = client.request('pool.ntp.org')
     synced_time = int(response.tx_time)
-    time.time = lambda: synced_time
+    get_time = lambda: synced_time
     print("✅ Time synchronized with NTP")
 except Exception as e:
     print(f"[⚠️] Time sync failed: {e}")
-    time.time = lambda: int(time.time())  # fallback: use integer version
+    get_time = lambda: int(time.time())  # fallback to local system time
 
-# 🔐 Environment Variables (Railway/Render safe)
+# 🔐 Environment Variables (Railway/Render/Atlas Safe)
 API_ID = int(os.environ.get("API_ID", "28906453"))
 API_HASH = os.environ.get("API_HASH", "f494712f1d11956c1954e2cbbd984370")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "7746953136:AAER6ehls2fS2ny4zO3wWcvBEcxg_YB_UD4")
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://shifanahamed007:s\Shifan007@cluster0.xvznbpo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+
+# ⚠️ FIXED: MongoDB URI with proper escape or raw string
+MONGO_URI = os.environ.get(
+    "MONGO_URI",
+    r"mongodb+srv://shifanahamed007:s\\Shifan007@cluster0.xvznbpo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+)
 
 # 🌐 MongoDB Client (Motor)
 mongo_client = AsyncIOMotorClient(MONGO_URI)
-db = mongo_client["Clustor0"]
-users_collection = db["shifanahamed007"]
+db = mongo_client["Cluster0"]  # ✅ Corrected spelling
+users_collection = db["users"]  # Use a simple collection name
 
 # 🤖 Initialize Pyrogram Client
 app = Client("rename_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -40,7 +45,7 @@ async def start(client, message):
         await users_collection.insert_one({
             "user_id": user_id,
             "username": username,
-            "joined_at": time.time()
+            "joined_at": get_time()
         })
         print(f"👤 New user added: {username} ({user_id})")
 
